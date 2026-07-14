@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Math Tug Arena</title>
+  <meta name="description" content="A premium educational tug-of-war math battle game." />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase (Realtime Database) — powers cross-device "VS Online" play.
+       See firebase-config.js for the 3-minute setup. -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <script src="firebase-config.js"></script>
+</head>
+
+<body>
+
+  <!-- Global control cluster: fullscreen + sound effects -->
+  <div class="global-controls" id="global-controls">
+    <button id="fullscreen-btn" class="global-btn" aria-label="Toggle fullscreen" title="Fullscreen">⛶</button>
+    <span class="global-controls-sep" aria-hidden="true"></span>
+    <button id="mute-btn" class="global-btn" aria-label="Toggle sound effects" title="Sound effects">🔊</button>
+  </div>
+
+  <div id="app">
+
+    <!-- =========================================================
+       SCREEN 1 — LANDING
+  ========================================================== -->
+    <section id="screen-landing" class="screen active">
+      <div class="landing-bg">
+        <div class="blob blob-a"></div>
+        <div class="blob blob-b"></div>
+        <div class="blob blob-c"></div>
+        <div id="floating-symbols"></div>
+      </div>
+
+      <div class="landing-content">
+        <div class="landing-badge">🏆 Classroom Math Battles</div>
+        <h1 class="hero-title">Math <span class="grad-text">Tug</span> Arena</h1>
+        <p class="hero-sub">Practice mathematics while battling your opponent — every correct answer pulls the rope your
+          way.</p>
+        <div class="landing-cta-row">
+          <button id="play-btn" class="play-btn">
+            <span class="play-btn-shimmer" aria-hidden="true"></span>
+            <span class="play-btn-content"><span>▶</span> Play Now</span>
+          </button>
+          <button id="join-battle-btn" class="join-battle-btn">
+            <span class="join-battle-shimmer" aria-hidden="true"></span>
+            <span class="join-battle-content"><span>🌐</span> Join Battle</span>
+          </button>
+        </div>
+        <div class="landing-stats">
+          <div><strong>7</strong><span>Grade Levels</span></div>
+          <div><strong>26</strong><span>Topics</span></div>
+          <div><strong>∞</strong><span>Questions</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+       SCREEN 2 — CLASS SELECT
+  ========================================================== -->
+    <section id="screen-class" class="screen">
+      <div class="screen-header">
+        <button class="back-btn" data-back="landing">← Back</button>
+        <div>
+          <h2 class="screen-title">Choose Your Class</h2>
+          <p class="screen-sub">Select your grade level to see matching topics and difficulty.</p>
+        </div>
+        <div class="header-spacer"></div>
+      </div>
+      <div id="class-grid" class="card-grid"></div>
+    </section>
+
+    <!-- =========================================================
+       SCREEN 3 — CATEGORY SELECT
+  ========================================================== -->
+    <section id="screen-category" class="screen">
+      <div class="screen-header">
+        <button class="back-btn" data-back="class">← Back</button>
+        <div>
+          <h2 class="screen-title">Class <span id="cat-class-num"></span> Topics</h2>
+          <p class="screen-sub">Pick a topic to battle in.</p>
+        </div>
+        <div class="header-spacer"></div>
+      </div>
+      <div id="category-grid" class="card-grid category-grid"></div>
+    </section>
+
+    <!-- =========================================================
+       SCREEN 4 — GAME MODE
+  ========================================================== -->
+    <section id="screen-mode" class="screen">
+      <div class="screen-header">
+        <button class="back-btn" data-back="category">← Back</button>
+        <div>
+          <h2 class="screen-title">Choose Mode</h2>
+          <p class="screen-sub" id="mode-sub">Topic selected</p>
+        </div>
+        <div class="header-spacer"></div>
+      </div>
+
+      <div class="mode-grid">
+        <button class="mode-card" id="mode-robot">
+          <div class="mode-icon">🤖</div>
+          <h3>VS Robot</h3>
+          <p>Battle an AI opponent that thinks and answers on its own.</p>
+        </button>
+        <button class="mode-card" id="mode-player">
+          <div class="mode-icon">👥</div>
+          <h3>VS Player</h3>
+          <p>Challenge a classmate on the same device.</p>
+        </button>
+        <button class="mode-card" id="mode-online">
+          <div class="mode-icon">🌐</div>
+          <h3>VS Online</h3>
+          <p>Battle a friend on another device with a room code.</p>
+        </button>
+      </div>
+
+      <!-- Robot difficulty sub-panel -->
+      <div id="robot-config" class="config-panel hidden">
+        <h4>Robot Difficulty</h4>
+        <div class="difficulty-row" id="difficulty-row">
+          <button class="diff-pill" data-diff="easy">Easy</button>
+          <button class="diff-pill" data-diff="medium">Medium</button>
+          <button class="diff-pill active" data-diff="hard">Hard</button>
+          <button class="diff-pill" data-diff="expert">Expert</button>
+          <button class="diff-pill" data-diff="impossible">Impossible</button>
+        </div>
+        <div class="name-row">
+          <label>Your Name</label>
+          <input id="name-solo" maxlength="14" value="Player 1" />
+        </div>
+        <button class="start-btn" id="start-robot-btn">Start Battle ⚔️</button>
+      </div>
+
+      <!-- VS Player name sub-panel -->
+      <div id="player-config" class="config-panel hidden">
+        <h4>Enter Names</h4>
+        <div class="name-row two-col">
+          <div>
+            <label>Player 1</label>
+            <input id="name-p1" maxlength="14" value="Player 1" />
+          </div>
+          <div>
+            <label>Player 2</label>
+            <input id="name-p2" maxlength="14" value="Player 2" />
+          </div>
+        </div>
+        <button class="start-btn" id="start-player-btn">Start Battle ⚔️</button>
+      </div>
+
+      <!-- VS Online sub-panel -->
+      <div id="online-config" class="config-panel hidden">
+
+        <div class="online-tabs" id="online-tabs">
+          <button class="online-tab active" data-tab="host">Host a Room</button>
+          <button class="online-tab" data-tab="join">Join a Room</button>
+        </div>
+
+        <div id="online-host-panel" class="online-tab-panel">
+          <div class="name-row">
+            <label>Your Name</label>
+            <input id="name-online-host" maxlength="14" value="Player 1" />
+          </div>
+          <button class="start-btn" id="create-room-btn">Create Room 🌐</button>
+        </div>
+
+        <div id="online-join-panel" class="online-tab-panel hidden">
+          <div id="online-join-fields">
+            <div class="name-row">
+              <label>Your Name</label>
+              <input id="name-online-join" maxlength="14" value="Player 2" />
+            </div>
+            <div class="name-row">
+              <label>Room Code</label>
+              <input id="join-code-input" class="code-input" maxlength="6" placeholder="ABCDE" autocomplete="off"
+                autocapitalize="characters" />
+            </div>
+            <button class="start-btn" id="join-room-btn">Look Up Room 🔎</button>
+          </div>
+
+          <!-- Filled in from the actual invite once the room code resolves —
+               never a fixed/guessed class or topic. -->
+          <div id="online-join-preview" class="join-preview hidden">
+            <p class="waiting-label">You're about to join:</p>
+            <div class="join-preview-card">
+              <span class="join-preview-class">Class <strong id="preview-class-num"></strong></span>
+              <span class="join-preview-topic" id="preview-topic-name"></span>
+              <span class="diff-badge" id="preview-diff-badge"></span>
+            </div>
+            <button class="start-btn" id="confirm-join-btn">Start Battle ⚔️</button>
+            <button class="ghost-btn" id="cancel-join-preview-btn">← Use a Different Code</button>
+          </div>
+        </div>
+
+        <div id="online-waiting-panel" class="online-tab-panel hidden">
+          <p class="waiting-label">Share this code with your opponent:</p>
+          <div class="room-code-display" id="room-code-display">-----</div>
+          <button class="ghost-btn" id="copy-code-btn">📋 Copy Code</button>
+          <p class="waiting-status">
+            <span class="waiting-dot"></span>
+            <span id="online-status-text">Waiting for opponent to join…</span>
+          </p>
+          <button class="ghost-btn" id="cancel-room-btn">Cancel</button>
+        </div>
+
+        <p class="online-error hidden" id="online-error-text"></p>
+      </div>
+    </section>
+
+    <!-- =========================================================
+       SCREEN 5 — GAME
+  ========================================================== -->
+    <section id="screen-game" class="screen">
+      <div class="game-topbar">
+        <button class="icon-btn" id="quit-btn" title="Quit match">✕</button>
+        <div class="topbar-center">
+          <span id="game-topic-label" class="topbar-topic"></span>
+        </div>
+        <div class="timer-chip">⏱ <span id="match-timer">00:00</span></div>
+      </div>
+
+      <div class="game-grid">
+
+        <!-- LEFT: Student panel -->
+        <div class="player-panel panel-left" id="panel-left">
+          <div class="panel-head grad-left">
+            <input id="left-name" class="panel-name-input" maxlength="14" value="Player 1" />
+            <div class="stat-row">
+              <div class="stat"><span id="left-score">0</span><small>Score</small></div>
+              <div class="stat"><span id="left-combo">0</span><small>Combo</small></div>
+              <div class="stat"><span id="left-accuracy">0%</span><small>Accuracy</small></div>
+            </div>
+          </div>
+
+          <div class="question-card">
+            <p id="left-question" class="question-text">—</p>
+            <div class="answer-box">
+              <span id="left-answer-display">&nbsp;</span><span class="cursor-blink">|</span>
+            </div>
+          </div>
+
+          <div class="keypad" id="left-keypad">
+            <button class="key" data-k="1">1</button>
+            <button class="key" data-k="2">2</button>
+            <button class="key" data-k="3">3</button>
+            <button class="key" data-k="4">4</button>
+            <button class="key" data-k="5">5</button>
+            <button class="key" data-k="6">6</button>
+            <button class="key" data-k="7">7</button>
+            <button class="key" data-k="8">8</button>
+            <button class="key" data-k="9">9</button>
+            <button class="key key-c" data-k="c">C</button>
+            <button class="key" data-k="0">0</button>
+            <button class="key key-ok" data-k="ok">OK</button>
+          </div>
+        </div>
+
+        <!-- CENTER: Battle Arena -->
+        <div class="battle-arena">
+          <div class="arena-topline">
+            <div class="arena-round">Round <span id="round-num">1</span></div>
+            <div class="arena-vs">VS</div>
+            <div class="arena-mode" id="arena-mode-label">Robot Battle</div>
+          </div>
+
+          <!-- The tug-of-war GIF + fixed center line are now the ONLY progress
+               indicator in the game. There is no separate progress bar. -->
+          <div class="arena-frame" id="arena-frame">
+            <div class="arena-shake" id="arena-shake">
+              <img id="tug-gif" src="personss.gif" alt="Tug of war animation" draggable="false" />
+              <img id="arena-victory-gif" src="" alt="" draggable="false" />
+            </div>
+            <div class="arena-vignette"></div>
+            <div class="arena-center-line"></div>
+            <div class="edge-marker edge-left"></div>
+            <div class="edge-marker edge-right"></div>
+            <div class="glow glow-left" id="glow-left"></div>
+            <div class="glow glow-right" id="glow-right"></div>
+            <div id="confetti-layer"></div>
+            <button class="arena-fullscreen-btn" id="arena-fullscreen-btn" title="Fullscreen arena"
+              aria-label="Toggle fullscreen">⛶</button>
+          </div>
+        </div>
+
+        <!-- RIGHT: Robot / Player 2 panel -->
+        <div class="player-panel panel-right" id="panel-right">
+          <div class="panel-head grad-right">
+            <div class="robot-id-row">
+              <span id="right-avatar" class="robot-avatar">🤖</span>
+              <input id="right-name" class="panel-name-input" maxlength="14" value="ROBOT" />
+            </div>
+            <div class="stat-row">
+              <div class="stat"><span id="right-score">0</span><small>Score</small></div>
+              <div class="stat"><span id="right-combo">0</span><small>Combo</small></div>
+              <div class="stat"><span id="right-accuracy">0%</span><small>Accuracy</small></div>
+            </div>
+          </div>
+
+          <div class="question-card">
+            <div id="thinking-indicator" class="thinking-indicator hidden"><span></span><span></span><span></span></div>
+            <p id="right-question" class="question-text">—</p>
+            <div class="answer-box">
+              <span id="right-answer-display">&nbsp;</span><span id="right-cursor" class="cursor-blink">|</span>
+            </div>
+          </div>
+
+          <div class="keypad" id="right-keypad">
+            <button class="key" data-k="1">1</button>
+            <button class="key" data-k="2">2</button>
+            <button class="key" data-k="3">3</button>
+            <button class="key" data-k="4">4</button>
+            <button class="key" data-k="5">5</button>
+            <button class="key" data-k="6">6</button>
+            <button class="key" data-k="7">7</button>
+            <button class="key" data-k="8">8</button>
+            <button class="key" data-k="9">9</button>
+            <button class="key key-c" data-k="c">C</button>
+            <button class="key" data-k="0">0</button>
+            <button class="key key-ok" data-k="ok">OK</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================
+         IN-PLACE VICTORY OVERLAY
+         Shown on top of screen-game when a match ends. The player is
+         never navigated away — this overlay fades in over a dimmed,
+         blurred backdrop while the frozen rope stays visible behind it.
+    ========================================================== -->
+      <div class="victory-overlay" id="victory-overlay">
+        <div class="victory-backdrop"></div>
+        <div class="victory-card" id="victory-card">
+          <div class="victory-confetti" id="victory-confetti"></div>
+
+          <p class="victory-trophy" id="victory-trophy">🏆</p>
+          <h2 class="victory-title" id="victory-title">Blue Team Wins!</h2>
+
+          <div class="victory-gif-wrap">
+            <img id="victory-gif" src="" alt="Winning team celebration" />
+          </div>
+
+          <p class="victory-tagline" id="victory-tagline">Great job battling it out.</p>
+
+          <div class="victory-stats">
+            <div class="victory-stat"><strong id="victory-correct">0</strong><span>Correct</span></div>
+            <div class="victory-stat"><strong id="victory-accuracy">0%</strong><span>Accuracy</span></div>
+            <div class="victory-stat"><strong id="victory-time">00:00</strong><span>Time</span></div>
+          </div>
+
+          <span class="victory-xp">⭐ XP Earned: <strong id="victory-xp">+0</strong></span>
+
+          <div class="victory-actions">
+            <button class="start-btn" id="victory-play-again-btn">🔄 Play Again</button>
+            <button class="ghost-btn" id="victory-home-btn">🏠 Back to Home</button>
+          </div>
+          <button class="victory-secondary-link" id="victory-another-btn">Choose another topic</button>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
